@@ -1,0 +1,10 @@
+# Every version is exact. An image freezes whatever pip resolved on the day it
+# was built, so a floor such as fastapi>=0.115 gives two different images from
+# the same Dockerfile a month apart. scikit-learn matters most, because
+# model.joblib was pickled by 1.9.1 and /health reports any other version.
+scikit-learn==1.9.1
+numpy==2.5.3
+joblib==1.6.0
+fastapi==0.141.1
+pydantic==2.13.5
+uvicorn==0.53.0

@@ -1,0 +1,9 @@
+# What `docker build .` leaves out of the build context. Anything not listed
+# here is sent to the builder, and a COPY . . would put it in the image.
+.git
+.venv
+__pycache__
+*.pyc
+.env
+scratch
+.DS_Store

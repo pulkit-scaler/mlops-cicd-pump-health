@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# Local settings and secrets. Never committed, and never copied into an image
+# either. See .dockerignore.
+.env
+
+# Files typed during a session, kept out of Git so the tree stays clean.
+scratch/

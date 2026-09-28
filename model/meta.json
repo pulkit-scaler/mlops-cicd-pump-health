@@ -1,0 +1,14 @@
+{
+  "model_version": "20260924-102606",
+  "sklearn_version": "1.9.1",
+  "features": [
+    "bearing_temp_c",
+    "vibration_mm_s",
+    "discharge_pressure_bar",
+    "motor_current_a",
+    "hours_since_service"
+  ],
+  "threshold": 0.3,
+  "test_roc_auc": 0.8131,
+  "failure_rate": 0.0587
+}
