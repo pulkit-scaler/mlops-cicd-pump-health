@@ -1,5 +1,5 @@
-# Run the tests on every pull request and on every push to main,
-# and post the result on the pull request as a comment.
+# Run the tests on every pull request and on every push to main, and post the
+# result on the pull request. After a push to main, deploy if the tests passed.
 name: Pipeline
 
 on:
@@ -60,3 +60,59 @@ jobs:
             echo '```'
           } > report.md
           cml comment update --target=pr report.md
+
+  deploy:
+    needs: test                                 # starts only if the test job passed
+    if: github.event_name != 'pull_request'     # never from a pull request
+    runs-on: ubuntu-latest
+    # id-token: write lets the job ask GitHub for an OIDC token,
+    # which AWS trades for short-lived credentials.
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: pump-health
+      ECS_CLUSTER: mlops-cluster
+      ECS_SERVICE: pump-health
+      TASK_FAMILY: pump-health
+      CONTAINER_NAME: pump-health
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Get AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push the image
+        id: image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          docker build --build-arg GIT_SHA=${{ github.sha }} -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Put the new image into the task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-family: ${{ env.TASK_FAMILY }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.image.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true
