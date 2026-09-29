@@ -1,0 +1,3 @@
+# What the tests need on top of requirements.txt. Never installed in the image.
+pytest==9.1.1
+httpx2==2.13.1
