@@ -42,7 +42,7 @@ class Verdict(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.model = joblib.load(MODEL_DIR / "model.joblib")
+    app.state.model = joblib.load(MODEL_DIR / "pump_model.joblib")
     app.state.meta = json.loads((MODEL_DIR / "meta.json").read_text())
     yield
 
