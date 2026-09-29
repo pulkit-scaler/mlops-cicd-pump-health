@@ -1,0 +1,62 @@
+# Run the tests on every pull request and on every push to main,
+# and post the result on the pull request as a comment.
+name: Pipeline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The default for every job. A job that needs more asks for it itself.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write      # CML writes the comment on the pull request
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run the tests
+        id: tests
+        run: |
+          set -o pipefail
+          python -m pytest -v --tb=line -rN 2>&1 | tee pytest.txt
+
+      - name: Set up CML
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        uses: iterative/setup-cml@v2
+        with:
+          version: v0.20.6
+          vega: false
+
+      - name: Post the test report on the pull request
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "## Test report: ${{ steps.tests.outcome }}"
+            echo
+            echo "Commit ${{ github.event.pull_request.head.sha }}"
+            echo
+            echo '```text'
+            tail -n 25 pytest.txt
+            echo '```'
+          } > report.md
+          cml comment update --target=pr report.md
