@@ -20,10 +20,21 @@ model/              model.joblib and meta.json, committed so the image can be bu
 requirements.txt    exact versions, the environment the image freezes
 Dockerfile          how the image is built; GIT_SHA is a build argument
 .dockerignore       what the build never sees
+infra/up.sh         stands up what the pipeline deploys to: network, load balancer,
+                    cluster, ECR repository, the first image and the service
+infra/down.sh       deletes all of that again
+infra/lookup.sh     finds those AWS resources by name and exports their IDs
 ```
 
-The session adds `.github/workflows/deploy.yml`, which builds the image,
-pushes it to Amazon ECR and rolls it out on Amazon ECS on every push to `main`.
+`infra/` plays the platform team. It builds, once, everything that stays the
+same between releases, so the pipeline only ever updates a service that
+already exists. It does not create anything that lets GitHub into AWS. The
+session does that.
+
+The session adds `tests/`, `requirements-dev.txt` and
+`.github/workflows/pipeline.yml`, which runs the tests on every pull request
+and, after they pass on `main`, builds the image, pushes it to Amazon ECR and
+rolls it out on Amazon ECS.
 
 ## Run it locally
 
